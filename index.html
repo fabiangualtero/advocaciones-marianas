@@ -85,15 +85,8 @@
     const modalContent = document.getElementById('modal-content');
     const modalClose = document.getElementById('modal-close');
 
-    // Imagen por defecto general si no se encuentra coincidencia
+    // Imagen por defecto si no se proporciona una personalizada en Google Sheets
     const fallbackImage = "https://images.unsplash.com/photo-1548625149-fc4a29cf7092?q=80&w=600&auto=format&fit=crop";
-
-    // Función inteligente para generar URLs de Wikimedia optimizadas y evitar duplicados genéricos
-    function getSmartImageUrl(nombre) {
-      // Limpiamos paréntesis y espacios extra para que la búsqueda en Wikimedia sea más precisa
-      const cleanName = nombre.replace(/\([^)]*\)/g, "").trim().replace(/ /g, "_");
-      return `https://commons.wikimedia.org/wiki/Special:FilePath/Virgen_${cleanName}.jpg`;
-    }
 
     function cargarDatosDesdeGoogleSheets() {
       Papa.parse(GOOGLE_SHEETS_CSV_URL, {
@@ -110,8 +103,8 @@
             cobertura: item["Cobertura"] || "",
             descripcion: item["Breve Descripción"] || "",
             estatus: item["Estatus / Aprobación por la Iglesia"] || "",
-            // Asignación automática de imagen inteligente
-            imagen: getSmartImageUrl(item["Nombre"] || "")
+            // Lee la columna "Imagen" de Google Sheets; si está vacía, usa la de respaldo
+            imagen: item["Imagen"] && item["Imagen"].trim() !== "" ? item["Imagen"].trim() : fallbackImage
           })).filter(item => item.nombre !== "");
 
           populateFilters();
@@ -207,7 +200,7 @@
       renderCards(filtered);
     }
 
-    searchInput.ехалаListener ? searchInput.addEventListener('input', filterData) : searchInput.addEventListener('input', filterData);
+    searchInput.addEventListener('input', filterData);
     filterContinente.addEventListener('change', filterData);
     filterUbicacion.addEventListener('change', filterData);
 
