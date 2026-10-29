@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Catálogo de Advocaciones Marianas</title>
-  <!-- Framework CSS para diseño responsivo -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Iconografía FontAwesome -->
+  <!-- Iconos -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <!-- Librería cliente para lectura de datos CSV de Google Sheets -->
+  <!-- PapaParse para leer Google Sheets -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <style>
     .card-img {
@@ -19,7 +19,6 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans">
 
-  <!-- Encabezado Principal -->
   <header class="bg-indigo-900 text-white py-6 shadow-md">
     <div class="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
       <div>
@@ -32,7 +31,6 @@
     </div>
   </header>
 
-  <!-- Seccion Principal: Filtros y Tarjetas -->
   <main class="container mx-auto px-4 py-8 flex flex-col lg:flex-row gap-8">
     <aside class="w-full lg:w-1/4 bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit sticky top-4">
       <h2 class="text-lg font-bold mb-4 flex items-center gap-2 border-b pb-2">
@@ -65,7 +63,6 @@
     </section>
   </main>
 
-  <!-- Ventana Flotante / Modal -->
   <div id="modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
     <div class="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl">
       <button id="modal-close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
@@ -73,10 +70,8 @@
     </div>
   </div>
 
-  <!-- Lógica en JavaScript -->
   <script>
-    // Enlace público CSV de Google Sheets
-    const GOOGLE_SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRyxFSTk-sStm4P0EtMIa56QBBGhbOsDowfS1e7GZ5KwNO55A0Lb41_Y7IV1zxVKOV9fbMaH7z_yjk3/pub?output=csv";
+    const GOOGLE_SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRyxFSTk-sStm4P0EtMIa56QBBGhbOsDowfS1e7GZ5KWnO55A0Lb41_Y7IV1zxVKOV9fbMaH7z_yjk3/pub?output=csv";
 
     let datos = [];
 
@@ -90,44 +85,40 @@
     const modalContent = document.getElementById('modal-content');
     const modalClose = document.getElementById('modal-close');
 
-    // Imagen elegante de respaldo cuando no se encuentre archivo público
+    // Imagen por defecto general si no se encuentra coincidencia
     const fallbackImage = "https://images.unsplash.com/photo-1548625149-fc4a29cf7092?q=80&w=600&auto=format&fit=crop";
 
-    // Generador dinámico de URL de imagen limpia
-    function getImageUrl(nombre) {
-      if (!nombre) return fallbackImage;
-      const cleanName = encodeURIComponent(nombre.replace(/\([^)]*\)/g, "").trim().replace(/ /g, "_"));
-      return `https://commons.wikimedia.org/wiki/Special:FilePath/${cleanName}.jpg`;
+    // Función inteligente para generar URLs de Wikimedia optimizadas y evitar duplicados genéricos
+    function getSmartImageUrl(nombre) {
+      // Limpiamos paréntesis y espacios extra para que la búsqueda en Wikimedia sea más precisa
+      const cleanName = nombre.replace(/\([^)]*\)/g, "").trim().replace(/ /g, "_");
+      return `https://commons.wikimedia.org/wiki/Special:FilePath/Virgen_${cleanName}.jpg`;
     }
 
-    // Carga inicial estable de datos
     function cargarDatosDesdeGoogleSheets() {
       Papa.parse(GOOGLE_SHEETS_CSV_URL, {
         download: true,
         header: true,
         skipEmptyLines: true,
         complete: function(results) {
-          try {
-            datos = results.data.map(item => ({
-              nombre: item["Nombre"] || "",
-              anio: item["Año"] || "",
-              ubicacion: item["Ciudad y País"] || "",
-              continente: item["Continente"] || "",
-              tipo: item["Tipo"] || "",
-              cobertura: item["Cobertura"] || "",
-              descripcion: item["Breve Descripción"] || "",
-              estatus: item["Estatus / Aprobación por la Iglesia"] || ""
-            })).filter(item => item.nombre !== "");
+          datos = results.data.map(item => ({
+            nombre: item["Nombre"] || "",
+            anio: item["Año"] || "",
+            ubicacion: item["Ciudad y País"] || "",
+            continente: item["Continente"] || "",
+            tipo: item["Tipo"] || "",
+            cobertura: item["Cobertura"] || "",
+            descripcion: item["Breve Descripción"] || "",
+            estatus: item["Estatus / Aprobación por la Iglesia"] || "",
+            // Asignación automática de imagen inteligente
+            imagen: getSmartImageUrl(item["Nombre"] || "")
+          })).filter(item => item.nombre !== "");
 
-            populateFilters();
-            renderCards(datos);
-          } catch (e) {
-            console.error("Error al procesar registros:", e);
-            totalCount.textContent = "Error al procesar los datos.";
-          }
+          populateFilters();
+          renderCards(datos);
         },
         error: function(err) {
-          console.error("Error al descargar CSV de Google Sheets:", err);
+          console.error("Error al cargar con PapaParse:", err);
           totalCount.textContent = "Error al cargar los datos.";
         }
       });
@@ -144,7 +135,13 @@
         filterContinente.innerHTML += `<option value="${c}">${c}</option>`;
       });
       ubicaciones.forEach(u => {
-        filterUbicacion.innerHTML += `<option value="${u}">${u}</option>`; }); }  function renderCards(items) { cardsContainer.innerHTML = ''; totalCount.textContent = `Mostrando: ${items.length} advocaciones`;
+        filterUbicacion.innerHTML += `<option value="${u}">${u}</option>`;
+      });
+    }
+
+    function renderCards(items) {
+      cardsContainer.innerHTML = '';
+      totalCount.textContent = `Mostrando: ${items.length} advocaciones`;
 
       if (items.length === 0) {
         cardsContainer.innerHTML = `<p class="col-span-full text-center py-12 text-slate-500">No se encontraron registros.</p>`;
@@ -154,11 +151,9 @@
       items.forEach(item => {
         const card = document.createElement('div');
         card.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition cursor-pointer flex flex-col";
-        
-        const imgUrl = getImageUrl(item.nombre);
 
         card.innerHTML = `
-          <img src="${imgUrl}" onerror="this.onerror=null; this.src='${fallbackImage}';" alt="${item.nombre}" class="w-full card-img">
+          <img src="${item.imagen}" onerror="this.onerror=null; this.src='${fallbackImage}';" alt="${item.nombre}" class="w-full card-img">
           <div class="p-4 flex-1 flex flex-col justify-between">
             <div>
               <span class="text-xs font-bold text-indigo-600 uppercase tracking-wider">${item.continente || 'General'}</span>
@@ -176,9 +171,8 @@
     }
 
     function openModal(item) {
-      const imgUrl = getImageUrl(item.nombre);
       modalContent.innerHTML = `
-        <img src="${imgUrl}" onerror="this.onerror=null; this.src='${fallbackImage}';" alt="${item.nombre}" class="w-full h-64 object-cover rounded-lg mb-4">
+        <img src="${item.imagen}" onerror="this.onerror=null; this.src='${fallbackImage}';" alt="${item.nombre}" class="w-full h-64 object-cover rounded-lg mb-4">
         <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded">${item.tipo}</span>
         <h2 class="text-2xl font-bold mt-2 text-slate-900">${item.nombre}</h2>
         <p class="text-sm text-slate-500 mb-4"><i class="fa-solid fa-location-dot"></i> ${item.ubicacion} — Año: ${item.anio}</p>
@@ -186,4 +180,45 @@
         <div class="space-y-3 text-sm text-slate-700 border-t pt-4">
           <p><strong>Descripción:</strong> ${item.descripcion}</p>
           <p><strong>Estatus / Aprobación:</strong> ${item.estatus}</p>
-          <p>
+          <p><strong>Cobertura:</strong> ${item.cobertura}</p>
+        </div>
+      `;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    modalClose.addEventListener('click', () => {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    });
+
+    function filterData() {
+      const search = searchInput.value.toLowerCase();
+      const cont = filterContinente.value;
+      const ubi = filterUbicacion.value;
+
+      const filtered = datos.filter(item => {
+        const matchesSearch = item.nombre.toLowerCase().includes(search) || item.descripcion.toLowerCase().includes(search);
+        const matchesCont = cont === '' || item.continente === cont;
+        const matchesUbi = ubi === '' || item.ubicacion === ubi;
+        return matchesSearch && matchesCont && matchesUbi;
+      });
+
+      renderCards(filtered);
+    }
+
+    searchInput.ехалаListener ? searchInput.addEventListener('input', filterData) : searchInput.addEventListener('input', filterData);
+    filterContinente.addEventListener('change', filterData);
+    filterUbicacion.addEventListener('change', filterData);
+
+    btnReset.addEventListener('click', () => {
+      searchInput.value = '';
+      filterContinente.value = '';
+      filterUbicacion.value = '';
+      renderCards(datos);
+    });
+
+    cargarDatosDesdeGoogleSheets();
+  </script>
+</body>
+</html>
